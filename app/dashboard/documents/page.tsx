@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import DocumentForm from "./document-form";
+import DriveSyncButton from "./drive-sync-button";
 import type { DocumentSource } from "@/lib/types";
 
 export default async function DocumentsPage() {
@@ -18,16 +19,22 @@ export default async function DocumentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-lg font-semibold">Reference documents</h1>
-        <p className="text-sm text-zinc-500">
-          The TP specialist agent grounds its matching and reasoning in these documents — client TP documentation
-          and the Malaysia regulatory framework — instead of relying only on the short fact narrative.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-lg font-semibold">Reference documents</h1>
+          <p className="text-sm text-zinc-500">
+            The TP specialist agent grounds its matching and reasoning in these documents — client TP documentation
+            and the Malaysia regulatory framework — instead of relying only on the short fact narrative.
+          </p>
+        </div>
+        <DriveSyncButton />
       </div>
 
       <div className="rounded-lg border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950">
-        <p className="mb-3 text-sm font-medium">Ingest a document</p>
+        <p className="mb-1 text-sm font-medium">Ingest a document manually</p>
+        <p className="mb-3 text-xs text-zinc-500">
+          Prefer &ldquo;Sync from Drive&rdquo; above for bulk import — use this for a one-off addition.
+        </p>
         <DocumentForm clients={clients ?? []} />
       </div>
 
