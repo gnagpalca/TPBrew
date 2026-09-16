@@ -6,19 +6,25 @@ export interface DriveFile {
   mimeType: string;
 }
 
+/**
+ * Uses OAuth with your own Google account (client id/secret + a long-lived
+ * refresh token obtained once via OAuth Playground) rather than a service
+ * account — many Google Cloud orgs now block service-account key creation
+ * by default policy, and OAuth is the more natural fit for "read my own
+ * Drive folder" anyway.
+ */
 function getAuth() {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
 
-  if (!email || !privateKey) {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT_EMAIL / GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY not configured");
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET / GOOGLE_OAUTH_REFRESH_TOKEN not configured");
   }
 
-  return new google.auth.JWT({
-    email,
-    key: privateKey,
-    scopes: ["https://www.googleapis.com/auth/drive.readonly"],
-  });
+  const client = new google.auth.OAuth2(clientId, clientSecret);
+  client.setCredentials({ refresh_token: refreshToken });
+  return client;
 }
 
 function getDriveClient() {
