@@ -150,22 +150,28 @@ alter table drafts enable row level security;
 alter table agent_runs enable row level security;
 
 -- Managers can see their own row only.
+drop policy if exists "managers_select_self" on managers;
 create policy "managers_select_self" on managers
   for select using (id = auth.uid());
 
 -- Managers can see/edit only clients assigned to them.
+drop policy if exists "clients_select_own" on clients;
 create policy "clients_select_own" on clients
   for select using (manager_id = auth.uid());
+drop policy if exists "clients_insert_own" on clients;
 create policy "clients_insert_own" on clients
   for insert with check (manager_id = auth.uid());
+drop policy if exists "clients_update_own" on clients;
 create policy "clients_update_own" on clients
   for update using (manager_id = auth.uid());
 
 -- Contacts follow their parent client's ownership.
+drop policy if exists "contacts_select_own" on contacts;
 create policy "contacts_select_own" on contacts
   for select using (
     exists (select 1 from clients c where c.id = contacts.client_id and c.manager_id = auth.uid())
   );
+drop policy if exists "contacts_write_own" on contacts;
 create policy "contacts_write_own" on contacts
   for all using (
     exists (select 1 from clients c where c.id = contacts.client_id and c.manager_id = auth.uid())
@@ -173,23 +179,29 @@ create policy "contacts_write_own" on contacts
 
 -- News items and sources are shared reference data — any signed-in manager
 -- can read them (no client-confidential data lives here).
+drop policy if exists "sources_select_all" on sources;
 create policy "sources_select_all" on sources for select using (auth.role() = 'authenticated');
+drop policy if exists "news_items_select_all" on news_items;
 create policy "news_items_select_all" on news_items for select using (auth.role() = 'authenticated');
 
 -- Matches are only visible via their client's ownership.
+drop policy if exists "matches_select_own" on matches;
 create policy "matches_select_own" on matches
   for select using (
     exists (select 1 from clients c where c.id = matches.client_id and c.manager_id = auth.uid())
   );
 
 -- Drafts: a manager only sees/decides drafts assigned to them.
+drop policy if exists "drafts_select_own" on drafts;
 create policy "drafts_select_own" on drafts
   for select using (manager_id = auth.uid());
+drop policy if exists "drafts_update_own" on drafts;
 create policy "drafts_update_own" on drafts
   for update using (manager_id = auth.uid());
 
 -- Run history is operational, not client-confidential — visible to any
 -- signed-in manager for the dashboard's run-history table.
+drop policy if exists "agent_runs_select_all" on agent_runs;
 create policy "agent_runs_select_all" on agent_runs for select using (auth.role() = 'authenticated');
 
 -- ---------------------------------------------------------------------------
@@ -282,12 +294,14 @@ $$;
 alter table document_sources enable row level security;
 alter table document_chunks enable row level security;
 
+drop policy if exists "document_sources_select" on document_sources;
 create policy "document_sources_select" on document_sources
   for select using (
     category = 'regulatory_framework'
     or exists (select 1 from clients c where c.id = document_sources.client_id and c.manager_id = auth.uid())
   );
 
+drop policy if exists "document_chunks_select" on document_chunks;
 create policy "document_chunks_select" on document_chunks
   for select using (
     category = 'regulatory_framework'

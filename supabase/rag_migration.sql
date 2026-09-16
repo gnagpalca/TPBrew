@@ -81,12 +81,14 @@ $$;
 alter table document_sources enable row level security;
 alter table document_chunks enable row level security;
 
+drop policy if exists "document_sources_select" on document_sources;
 create policy "document_sources_select" on document_sources
   for select using (
     category = 'regulatory_framework'
     or exists (select 1 from clients c where c.id = document_sources.client_id and c.manager_id = auth.uid())
   );
 
+drop policy if exists "document_chunks_select" on document_chunks;
 create policy "document_chunks_select" on document_chunks
   for select using (
     category = 'regulatory_framework'
