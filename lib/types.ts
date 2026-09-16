@@ -38,6 +38,7 @@ export interface Match {
   client_id: string;
   relevance_score: number;
   reasoning: string;
+  citations: Citation[] | null;
   created_at: string;
 }
 
@@ -64,6 +65,36 @@ export interface AgentRun {
   items_found: number | null;
   items_matched: number | null;
   errors: unknown;
+}
+
+export type DocumentCategory = "client_tp_doc" | "regulatory_framework";
+
+export interface DocumentSource {
+  id: string;
+  category: DocumentCategory;
+  client_id: string | null;
+  title: string;
+  jurisdiction: string | null;
+  source_ref: string | null;
+  created_at: string;
+}
+
+export interface DocumentChunk {
+  id: string;
+  document_source_id: string;
+  category: DocumentCategory;
+  client_id: string | null;
+  jurisdiction: string | null;
+  chunk_index: number;
+  content: string;
+  embedding: number[] | null;
+  created_at: string;
+}
+
+export interface Citation {
+  document_chunk_id: string;
+  document_title: string;
+  snippet: string;
 }
 
 // Strict JSON contract the Haiku scraper agent must return (PRD §8.1).

@@ -214,3 +214,82 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_manager();
+
+-- ---------------------------------------------------------------------------
+-- RAG: document sources for grounding the TP specialist agent (see
+-- rag_migration.sql for the same content with commentary — kept here too so
+-- a fresh setup only ever needs to run this one file).
+-- ---------------------------------------------------------------------------
+
+create table if not exists document_sources (
+  id uuid primary key default gen_random_uuid(),
+  category text not null check (category in ('client_tp_doc', 'regulatory_framework')),
+  client_id uuid references clients (id) on delete cascade,
+  title text not null,
+  jurisdiction text,
+  source_ref text,
+  created_at timestamptz default now()
+);
+
+create table if not exists document_chunks (
+  id uuid primary key default gen_random_uuid(),
+  document_source_id uuid references document_sources (id) on delete cascade,
+  category text not null check (category in ('client_tp_doc', 'regulatory_framework')),
+  client_id uuid references clients (id) on delete cascade,
+  jurisdiction text,
+  chunk_index int not null,
+  content text not null,
+  embedding vector(1024),
+  created_at timestamptz default now()
+);
+
+create index if not exists document_chunks_embedding_idx on document_chunks using ivfflat (embedding vector_cosine_ops);
+
+alter table matches add column if not exists citations jsonb;
+
+create or replace function match_document_chunks(
+  query_embedding vector(1024),
+  match_category text,
+  match_client_id uuid default null,
+  match_jurisdiction text default null,
+  match_count int default 5
+)
+returns table (
+  id uuid,
+  document_source_id uuid,
+  title text,
+  content text,
+  similarity float
+)
+language sql stable security definer
+as $$
+  select
+    dc.id,
+    dc.document_source_id,
+    ds.title,
+    dc.content,
+    1 - (dc.embedding <=> query_embedding) as similarity
+  from document_chunks dc
+  join document_sources ds on ds.id = dc.document_source_id
+  where dc.embedding is not null
+    and dc.category = match_category
+    and (match_client_id is null or dc.client_id = match_client_id)
+    and (match_jurisdiction is null or dc.jurisdiction = match_jurisdiction or dc.jurisdiction = 'OECD-wide')
+  order by dc.embedding <=> query_embedding
+  limit match_count;
+$$;
+
+alter table document_sources enable row level security;
+alter table document_chunks enable row level security;
+
+create policy "document_sources_select" on document_sources
+  for select using (
+    category = 'regulatory_framework'
+    or exists (select 1 from clients c where c.id = document_sources.client_id and c.manager_id = auth.uid())
+  );
+
+create policy "document_chunks_select" on document_chunks
+  for select using (
+    category = 'regulatory_framework'
+    or exists (select 1 from clients c where c.id = document_chunks.client_id and c.manager_id = auth.uid())
+  );
