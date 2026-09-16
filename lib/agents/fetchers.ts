@@ -56,6 +56,45 @@ async function fetchFirecrawl(source: Source): Promise<RawItem[]> {
   ];
 }
 
+interface NewsDataResult {
+  title: string;
+  link: string;
+  description: string | null;
+  content: string | null;
+  pubDate: string | null;
+}
+
+/**
+ * NewsData.io is query-based rather than feed-based, so for `newsdata`
+ * sources the `url` column holds a search query string (e.g. "transfer
+ * pricing Malaysia") instead of an actual URL — set this when adding the
+ * source row.
+ */
+async function fetchNewsData(source: Source): Promise<RawItem[]> {
+  const params = new URLSearchParams({
+    apikey: process.env.NEWSDATA_API_KEY ?? "",
+    q: source.url,
+    language: "en",
+  });
+
+  const res = await fetch(`https://newsdata.io/api/1/latest?${params}`);
+
+  if (!res.ok) {
+    throw new Error(`NewsData.io request failed for query "${source.url}": ${res.status}`);
+  }
+
+  const data = (await res.json()) as { results?: NewsDataResult[] };
+
+  return (data.results ?? [])
+    .filter((item) => item.link)
+    .map((item) => ({
+      sourceUrl: item.link,
+      title: item.title ?? "(untitled)",
+      rawContent: item.content ?? item.description ?? item.title ?? "",
+      publishedDate: item.pubDate,
+    }));
+}
+
 export async function fetchSource(source: Source): Promise<RawItem[]> {
   switch (source.type) {
     case "rss":
@@ -63,5 +102,7 @@ export async function fetchSource(source: Source): Promise<RawItem[]> {
       return fetchRss(source);
     case "firecrawl":
       return fetchFirecrawl(source);
+    case "newsdata":
+      return fetchNewsData(source);
   }
 }

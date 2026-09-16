@@ -35,7 +35,7 @@ create table if not exists sources (
   id uuid primary key default gen_random_uuid(),
   name text not null,                  -- e.g. 'OECD Tax News', 'LHDN Malaysia'
   url text not null,
-  type text not null check (type in ('rss', 'firecrawl', 'google_alert')),
+  type text not null check (type in ('rss', 'firecrawl', 'google_alert', 'newsdata')),
   active boolean default true
 );
 

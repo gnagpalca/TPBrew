@@ -1,4 +1,4 @@
-export type SourceType = "rss" | "firecrawl" | "google_alert";
+export type SourceType = "rss" | "firecrawl" | "google_alert" | "newsdata";
 
 export interface Source {
   id: string;
