@@ -20,6 +20,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link href="/dashboard/news" className="hover:text-black dark:hover:text-white">
               News
             </Link>
+            <Link href="/dashboard/opportunities" className="hover:text-black dark:hover:text-white">
+              Opportunities
+            </Link>
             <Link href="/dashboard/drafts" className="hover:text-black dark:hover:text-white">
               Drafts
             </Link>
