@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import RunNowButton from "./run-now-button";
+import { formatMalaysiaDateTime } from "@/lib/format";
 import type { AgentRun } from "@/lib/types";
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -87,7 +88,7 @@ export default async function DashboardPage() {
           <tbody>
             {(runs as AgentRun[] | null)?.map((run) => (
               <tr key={run.id} className="border-t border-black/5 dark:border-white/5">
-                <td className="px-4 py-2">{new Date(run.started_at).toLocaleString()}</td>
+                <td className="px-4 py-2">{formatMalaysiaDateTime(run.started_at)}</td>
                 <td className="px-4 py-2 capitalize">{run.trigger_type}</td>
                 <td className="px-4 py-2">{run.sources_checked ?? "—"}</td>
                 <td className="px-4 py-2">{run.items_found ?? "—"}</td>

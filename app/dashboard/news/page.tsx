@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { formatMalaysiaDate } from "@/lib/format";
 import type { NewsItem } from "@/lib/types";
 
 export default async function NewsPage() {
@@ -28,9 +29,7 @@ export default async function NewsPage() {
           >
             <div className="flex items-start justify-between gap-4">
               <p className="font-medium">{item.title}</p>
-              <span className="whitespace-nowrap text-xs text-zinc-400">
-                {new Date(item.scraped_at).toLocaleDateString()}
-              </span>
+              <span className="whitespace-nowrap text-xs text-zinc-400">{formatMalaysiaDate(item.scraped_at)}</span>
             </div>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{item.summary}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
