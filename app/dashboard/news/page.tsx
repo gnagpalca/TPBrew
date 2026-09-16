@@ -1,24 +1,41 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formatMalaysiaDate } from "@/lib/format";
+import { formatMalaysiaDate, malaysiaTodayStartUtc } from "@/lib/format";
 import type { NewsItem } from "@/lib/types";
 
-export default async function NewsPage() {
+export default async function NewsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ all?: string }>;
+}) {
+  const { all } = await searchParams;
+  const showAll = all === "true";
+
   const supabase = await createClient();
 
-  const { data: newsItems } = await supabase
-    .from("news_items")
-    .select("*")
-    .order("scraped_at", { ascending: false })
-    .limit(100);
+  let query = supabase.from("news_items").select("*").order("scraped_at", { ascending: false }).limit(100);
+  if (!showAll) {
+    query = query.gte("scraped_at", malaysiaTodayStartUtc());
+  }
+  const { data: newsItems } = await query;
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-lg font-semibold">Scraped news</h1>
-        <p className="text-sm text-zinc-500">
-          Everything the Haiku scraper agent classified as relevant, before client matching. Not every item here
-          will match a client — see the Drafts tab for matched, bundled results.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-lg font-semibold">Scraped news</h1>
+          <p className="text-sm text-zinc-500">
+            Everything the Haiku scraper agent classified as relevant, before client matching. Not every item here
+            will match a client — see the Drafts tab for matched, bundled results. Nothing is ever deleted — this
+            view just defaults to today.
+          </p>
+        </div>
+        <Link
+          href={showAll ? "/dashboard/news" : "/dashboard/news?all=true"}
+          className="whitespace-nowrap rounded-md border border-black/10 px-3 py-1.5 text-xs dark:border-white/10"
+        >
+          {showAll ? "Show today only" : "Show all history"}
+        </Link>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -59,7 +76,9 @@ export default async function NewsPage() {
         ))}
         {(!newsItems || newsItems.length === 0) && (
           <p className="rounded-lg border border-dashed border-black/10 p-6 text-center text-sm text-zinc-500 dark:border-white/10">
-            No news scraped yet — click &ldquo;Run now&rdquo; on the Runs tab.
+            {showAll
+              ? 'No news scraped yet — click "Run now" on the Runs tab.'
+              : 'Nothing scraped today yet — click "Run now" on the Runs tab, or check "Show all history" for earlier items.'}
           </p>
         )}
       </div>
