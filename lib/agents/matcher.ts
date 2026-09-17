@@ -13,11 +13,15 @@ const SIMILARITY_THRESHOLD = 0.3;
 const CANDIDATE_LIMIT = 10;
 const GROUNDING_CHUNK_LIMIT = 5;
 
+const DECISION_HISTORY_LIMIT = 5;
+
 const SYSTEM_PROMPT = `You are a transfer pricing specialist at a Big 4 firm. You are given a news item, one client's transfer pricing fact pattern, and — where available — excerpts from that client's own TP documentation and from the Malaysia regulatory framework. Decide whether this news is GENUINELY relevant to this specific client — not just topically similar.
 
 A vector search has already flagged this as a plausible candidate; your job is to catch false positives (e.g. news about IP licensing when the client only has intercompany loans, or news about a jurisdiction the client has no operations in) and, for genuine matches, explain why in one sentence a partner could put directly in a client email.
 
 Ground your reasoning in the client's actual TP documentation and the regulatory excerpts when they're provided and relevant — don't just restate the fact narrative. If no document excerpts are provided, or none are relevant, reason from the fact pattern alone.
+
+You may also be shown this manager's recent approve/reject decisions for this same client. Use them to calibrate borderline calls — if they've rejected similar news before (especially with a stated reason), lean against repeating that same call; if they've approved similar news, that's a signal the topic genuinely matters to them. Don't over-index on a single past decision, and never let it override a clear-cut case in either direction.
 
 Respond with strict JSON only, no markdown fences:
 {"relevant": boolean, "reasoning": string}
@@ -81,10 +85,49 @@ function formatGroundingContext(chunks: GroundingChunk[]): string {
   return chunks.map((c, i) => `[${i + 1}] ${c.title}:\n${c.content}`).join("\n\n");
 }
 
+interface PastDecision {
+  status: "approved" | "sent" | "rejected";
+  email_subject: string | null;
+  rejection_reason: string | null;
+}
+
+/**
+ * The feedback loop: pulls this client's most recent approve/reject
+ * decisions so judgeMatch can calibrate to what this specific manager has
+ * actually accepted or turned down before, instead of judging every news
+ * item from a blank slate every time. A "decision" here is at the level of
+ * a weekly draft (a bundle of matches), since that's the only granularity
+ * managers currently decide at — there's no per-match approve/reject.
+ */
+async function getRecentDecisions(supabase: SupabaseClient, clientId: string): Promise<PastDecision[]> {
+  const { data } = await supabase
+    .from("drafts")
+    .select("status, email_subject, rejection_reason")
+    .eq("client_id", clientId)
+    .in("status", ["approved", "sent", "rejected"])
+    .order("decided_at", { ascending: false })
+    .limit(DECISION_HISTORY_LIMIT);
+
+  return (data ?? []) as PastDecision[];
+}
+
+function formatDecisionHistory(decisions: PastDecision[]): string {
+  if (decisions.length === 0) return "(no past decisions yet for this client)";
+  return decisions
+    .map((d) => {
+      if (d.status === "rejected") {
+        return `- REJECTED: "${d.email_subject ?? "(untitled)"}" — reason: ${d.rejection_reason || "no reason given"}`;
+      }
+      return `- APPROVED & SENT: "${d.email_subject ?? "(untitled)"}"`;
+    })
+    .join("\n");
+}
+
 async function judgeMatch(
   client: Client,
   newsItem: NewsItem,
-  groundingChunks: GroundingChunk[]
+  groundingChunks: GroundingChunk[],
+  decisionHistory: PastDecision[]
 ): Promise<{ relevant: boolean; reasoning: string }> {
   const message = await anthropic.messages.create({
     model: MODELS.sonnet,
@@ -93,7 +136,7 @@ async function judgeMatch(
     messages: [
       {
         role: "user",
-        content: `Client fact pattern (${client.jurisdiction}, ${client.industry ?? "industry unspecified"}):\n${client.fact_narrative}\n\nNews item:\nTitle: ${newsItem.title}\nSummary: ${newsItem.summary}\nJurisdiction relevance: ${(newsItem.jurisdiction_relevance ?? []).join(", ") || "unspecified"}\n\nRelevant excerpts from client TP documentation and Malaysia regulatory framework:\n${formatGroundingContext(groundingChunks)}`,
+        content: `Client fact pattern (${client.jurisdiction}, ${client.industry ?? "industry unspecified"}):\n${client.fact_narrative}\n\nNews item:\nTitle: ${newsItem.title}\nSummary: ${newsItem.summary}\nJurisdiction relevance: ${(newsItem.jurisdiction_relevance ?? []).join(", ") || "unspecified"}\n\nRelevant excerpts from client TP documentation and Malaysia regulatory framework:\n${formatGroundingContext(groundingChunks)}\n\nThis manager's recent decisions for this client (most recent first):\n${formatDecisionHistory(decisionHistory)}`,
       },
     ],
   });
@@ -149,8 +192,11 @@ export async function matchNewsItem(supabase: SupabaseClient, newsItem: NewsItem
       continue;
     }
 
-    const groundingChunks = await retrieveGroundingChunks(supabase, candidate, newsItem);
-    const judgment = await judgeMatch(candidate, newsItem, groundingChunks);
+    const [groundingChunks, decisionHistory] = await Promise.all([
+      retrieveGroundingChunks(supabase, candidate, newsItem),
+      getRecentDecisions(supabase, candidate.id),
+    ]);
+    const judgment = await judgeMatch(candidate, newsItem, groundingChunks, decisionHistory);
     if (!judgment.relevant) continue;
 
     const citations: Citation[] = groundingChunks.map((c) => ({

@@ -54,6 +54,7 @@ export interface Draft {
   status: DraftStatus;
   created_at: string;
   decided_at: string | null;
+  rejection_reason: string | null;
 }
 
 export interface AgentRun {

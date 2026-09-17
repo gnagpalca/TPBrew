@@ -71,8 +71,11 @@ create table if not exists drafts (
   email_body text,
   status text default 'pending' check (status in ('pending', 'approved', 'rejected', 'sent')),
   created_at timestamptz default now(),
-  decided_at timestamptz
+  decided_at timestamptz,
+  rejection_reason text                -- optional, manager-supplied on reject; fed back
+                                        -- into future matching for this client (see matcher.ts)
 );
+alter table drafts add column if not exists rejection_reason text;
 
 create table if not exists agent_runs (
   id uuid primary key default gen_random_uuid(),

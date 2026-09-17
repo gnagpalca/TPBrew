@@ -14,6 +14,8 @@ interface DraftCardProps {
 export default function DraftCard({ id, clientName, matchCount, emailSubject, emailBody }: DraftCardProps) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
   const [subject, setSubject] = useState(emailSubject);
   const [body, setBody] = useState(emailBody);
   const [busy, setBusy] = useState(false);
@@ -36,14 +38,19 @@ export default function DraftCard({ id, clientName, matchCount, emailSubject, em
     }
   }
 
-  async function decide(action: "approve" | "reject") {
+  async function decide(action: "approve" | "reject", reason?: string) {
     setBusy(true);
     setMessage(null);
-    const res = await fetch(`/api/drafts/${id}/${action}`, { method: "POST" });
+    const res = await fetch(`/api/drafts/${id}/${action}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(reason ? { reason } : {}),
+    });
     const data = await res.json();
     setBusy(false);
     if (res.ok) {
       setMessage(action === "approve" ? (data.status === "sent" ? "Sent to client." : data.error) : "Rejected.");
+      setRejecting(false);
       router.refresh();
     } else {
       setMessage(data.error ?? "Action failed");
@@ -58,7 +65,7 @@ export default function DraftCard({ id, clientName, matchCount, emailSubject, em
           <p className="text-xs text-muted">{matchCount} matched item(s) bundled</p>
         </div>
         <div className="flex gap-2">
-          {!editing && (
+          {!editing && !rejecting && (
             <button
               onClick={() => setEditing(true)}
               disabled={busy}
@@ -67,24 +74,57 @@ export default function DraftCard({ id, clientName, matchCount, emailSubject, em
               Edit
             </button>
           )}
-          <button
-            onClick={() => decide("reject")}
-            disabled={busy}
-            className="rounded-md border border-red-900/50 px-3 py-1.5 text-xs text-red-400"
-          >
-            Reject
-          </button>
-          <button
-            onClick={() => decide("approve")}
-            disabled={busy}
-            className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground transition hover:brightness-110"
-          >
-            Approve & send
-          </button>
+          {!rejecting && (
+            <button
+              onClick={() => setRejecting(true)}
+              disabled={busy}
+              className="rounded-md border border-red-900/50 px-3 py-1.5 text-xs text-red-400"
+            >
+              Reject
+            </button>
+          )}
+          {!rejecting && (
+            <button
+              onClick={() => decide("approve")}
+              disabled={busy}
+              className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground transition hover:brightness-110"
+            >
+              Approve & send
+            </button>
+          )}
         </div>
       </div>
 
-      {editing ? (
+      {rejecting ? (
+        <div className="mt-3 flex flex-col gap-2">
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Why? (optional — helps the agent calibrate future matches for this client)"
+            rows={2}
+            className="rounded-md border border-border bg-transparent px-3 py-2 text-sm"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => decide("reject", rejectReason)}
+              disabled={busy}
+              className="rounded-md border border-red-900/50 px-3 py-1.5 text-xs font-medium text-red-400"
+            >
+              Confirm reject
+            </button>
+            <button
+              onClick={() => {
+                setRejecting(false);
+                setRejectReason("");
+              }}
+              disabled={busy}
+              className="rounded-md border border-border px-3 py-1.5 text-xs hover:border-accent/50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : editing ? (
         <div className="mt-3 flex flex-col gap-2">
           <input
             value={subject}
