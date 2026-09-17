@@ -101,16 +101,16 @@ export async function generateDraftsForPendingMatches(supabase: SupabaseClient):
     if (draftError || !draft) continue;
     draftsCreated++;
 
-    const { data: manager } = await supabase
-      .from("managers")
-      .select("email, name")
-      .eq("id", client.manager_id)
-      .maybeSingle();
+    // Any manager on the team can approve/reject any draft (shared-team
+    // RLS model), so notify the whole team rather than just whoever
+    // happens to be this client's assigned manager_id.
+    const { data: managers } = await supabase.from("managers").select("email");
+    const teamEmails = (managers ?? []).map((m) => m.email).filter(Boolean);
 
-    if (manager?.email) {
+    if (teamEmails.length > 0) {
       await getResend().emails.send({
         from: FROM_EMAIL,
-        to: manager.email,
+        to: teamEmails,
         subject: `[Review needed] TP news draft for ${client.name}`,
         text: `A new weekly TP news draft is ready for your review.\n\nClient: ${client.name}\nSubject: ${subject}\n\n${body}\n\nOpen the dashboard to Approve, Edit, or Reject this draft before anything reaches the client.`,
       });
