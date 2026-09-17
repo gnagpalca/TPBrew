@@ -75,8 +75,8 @@ export default async function NewsPage({
         {(!newsItems || newsItems.length === 0) && (
           <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted">
             {showAll
-              ? 'No news scraped yet — click "Run now" on the Runs tab.'
-              : 'Nothing scraped today yet — click "Run now" on the Runs tab, or check "Show all history" for earlier items.'}
+              ? 'No news scraped yet — click "Run now" on the Dashboard.'
+              : 'Nothing scraped today yet — click "Run now" on the Dashboard, or check "Show all history" for earlier items.'}
           </p>
         )}
       </div>

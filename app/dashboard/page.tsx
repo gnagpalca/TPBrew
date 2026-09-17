@@ -1,13 +1,54 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import RunNowButton from "./run-now-button";
 import { formatMalaysiaDateTime } from "@/lib/format";
 import type { AgentRun } from "@/lib/types";
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function AttentionCard({
+  label,
+  value,
+  href,
+  cta,
+}: {
+  label: string;
+  value: string;
+  href: string;
+  cta: string;
+}) {
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
-      <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-accent">{value}</p>
+    <div className="flex flex-col justify-between rounded-lg border border-border bg-surface p-4">
+      <div>
+        <p className="text-xs text-muted">{label}</p>
+        <p className="mt-1 text-3xl font-semibold text-accent">{value}</p>
+      </div>
+      <Link href={href} className="mt-3 text-xs font-medium text-accent hover:brightness-110">
+        {cta} →
+      </Link>
+    </div>
+  );
+}
+
+function LastRunCard({ run }: { run: AgentRun | null }) {
+  const errorCount = run && Array.isArray(run.errors) ? run.errors.length : 0;
+  return (
+    <div className="flex flex-col justify-between rounded-lg border border-border bg-surface p-4">
+      <div>
+        <p className="text-xs text-muted">Last run</p>
+        {run ? (
+          <>
+            <p className="mt-1 text-sm font-medium">{formatMalaysiaDateTime(run.started_at)}</p>
+            <p className="mt-1 text-xs text-muted">
+              {run.items_found ?? 0} found · {run.items_matched ?? 0} matched
+              {errorCount > 0 ? ` · ${errorCount} error(s)` : ""}
+            </p>
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-muted">Never run yet</p>
+        )}
+      </div>
+      <Link href="/dashboard/activity" className="mt-3 text-xs font-medium text-accent hover:brightness-110">
+        View activity →
+      </Link>
     </div>
   );
 }
@@ -15,98 +56,115 @@ function StatCard({ label, value }: { label: string; value: string }) {
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const { data: runs } = await supabase
-    .from("agent_runs")
-    .select("*")
-    .order("started_at", { ascending: false })
-    .limit(20);
-
-  // Server Component computing a per-request cutoff, not client render state.
   // eslint-disable-next-line react-hooks/purity
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ count: matchesTotal }, { count: matchesThisWeek }, { data: decidedDrafts }, { data: matchesWithTopics }] =
-    await Promise.all([
-      supabase.from("matches").select("*", { count: "exact", head: true }),
-      supabase.from("matches").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
-      supabase.from("drafts").select("status").neq("status", "pending"),
-      supabase.from("matches").select("news_items(topic_tags)").limit(200),
-    ]);
-
-  const approvedOrSent = (decidedDrafts ?? []).filter((d) => d.status === "approved" || d.status === "sent").length;
-  const approvalRate =
-    decidedDrafts && decidedDrafts.length > 0 ? Math.round((approvedOrSent / decidedDrafts.length) * 100) : null;
-
-  const topicCounts = new Map<string, number>();
-  for (const row of matchesWithTopics ?? []) {
-    const tags = (row as unknown as { news_items: { topic_tags: string[] | null } | null }).news_items?.topic_tags;
-    for (const tag of tags ?? []) {
-      topicCounts.set(tag, (topicCounts.get(tag) ?? 0) + 1);
-    }
-  }
-  const topTopics = [...topicCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const [
+    { count: pendingDraftsCount },
+    { data: pendingDrafts },
+    { count: matchesThisWeekCount },
+    { data: recentMatches },
+    { data: lastRun },
+  ] = await Promise.all([
+    supabase.from("drafts").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase
+      .from("drafts")
+      .select("id, email_subject, created_at, clients(name)")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase.from("matches").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
+    supabase
+      .from("matches")
+      .select("id, created_at, relevance_score, clients(name), news_items(title)")
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase.from("agent_runs").select("*").order("started_at", { ascending: false }).limit(1).maybeSingle(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Agent run history</h1>
+        <div>
+          <h1 className="text-lg font-semibold">Dashboard</h1>
+          <p className="text-sm text-muted">What needs your attention today.</p>
+        </div>
         <RunNowButton />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Matches (all time)" value={String(matchesTotal ?? 0)} />
-        <StatCard label="Matches (last 7 days)" value={String(matchesThisWeek ?? 0)} />
-        <StatCard label="Approval rate" value={approvalRate === null ? "—" : `${approvalRate}%`} />
-        <StatCard label="Decided drafts" value={String(decidedDrafts?.length ?? 0)} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <AttentionCard
+          label="Pending drafts"
+          value={String(pendingDraftsCount ?? 0)}
+          href="/dashboard/drafts"
+          cta="Review drafts"
+        />
+        <AttentionCard
+          label="New opportunities (7 days)"
+          value={String(matchesThisWeekCount ?? 0)}
+          href="/dashboard/opportunities"
+          cta="View opportunities"
+        />
+        <LastRunCard run={(lastRun as AgentRun | null) ?? null} />
       </div>
 
-      {topTopics.length > 0 && (
+      <div className="grid gap-6 sm:grid-cols-2">
         <div className="rounded-lg border border-border bg-surface p-4">
-          <p className="mb-2 text-xs text-muted">Top matched topics</p>
-          <div className="flex flex-wrap gap-2">
-            {topTopics.map(([tag, count]) => (
-              <span key={tag} className="rounded-full bg-surface-muted px-3 py-1 text-xs">
-                {tag} · {count}
-              </span>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-medium">Pending drafts</p>
+            <Link href="/dashboard/drafts" className="text-xs text-accent hover:brightness-110">
+              View all →
+            </Link>
+          </div>
+          <div className="flex flex-col gap-2">
+            {(
+              pendingDrafts as
+                | { id: string; email_subject: string; created_at: string; clients: { name: string } | null }[]
+                | null
+            )?.map((d) => (
+              <div key={d.id} className="rounded-md bg-surface-muted px-3 py-2 text-sm">
+                <p className="font-medium">{d.clients?.name ?? "Unknown client"}</p>
+                <p className="text-xs text-muted">{d.email_subject}</p>
+              </div>
             ))}
+            {(!pendingDrafts || pendingDrafts.length === 0) && (
+              <p className="rounded-md border border-dashed border-border p-4 text-center text-xs text-muted">
+                Nothing pending — you&rsquo;re caught up.
+              </p>
+            )}
           </div>
         </div>
-      )}
 
-      <div className="overflow-hidden rounded-lg border border-border">
-        <table className="w-full text-sm">
-          <thead className="bg-surface-muted text-left text-xs uppercase text-muted">
-            <tr>
-              <th className="px-4 py-2">Started</th>
-              <th className="px-4 py-2">Trigger</th>
-              <th className="px-4 py-2">Sources checked</th>
-              <th className="px-4 py-2">Items found</th>
-              <th className="px-4 py-2">Items matched</th>
-              <th className="px-4 py-2">Errors</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(runs as AgentRun[] | null)?.map((run) => (
-              <tr key={run.id} className="border-t border-border">
-                <td className="px-4 py-2">{formatMalaysiaDateTime(run.started_at)}</td>
-                <td className="px-4 py-2 capitalize">{run.trigger_type}</td>
-                <td className="px-4 py-2">{run.sources_checked ?? "—"}</td>
-                <td className="px-4 py-2">{run.items_found ?? "—"}</td>
-                <td className="px-4 py-2">{run.items_matched ?? "—"}</td>
-                <td className="px-4 py-2 text-red-400">
-                  {Array.isArray(run.errors) ? `${run.errors.length} error(s)` : "—"}
-                </td>
-              </tr>
+        <div className="rounded-lg border border-border bg-surface p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-medium">Recent opportunities</p>
+            <Link href="/dashboard/opportunities" className="text-xs text-accent hover:brightness-110">
+              View all →
+            </Link>
+          </div>
+          <div className="flex flex-col gap-2">
+            {(
+              recentMatches as
+                | {
+                    id: string;
+                    relevance_score: number;
+                    clients: { name: string } | null;
+                    news_items: { title: string } | null;
+                  }[]
+                | null
+            )?.map((m) => (
+              <div key={m.id} className="rounded-md bg-surface-muted px-3 py-2 text-sm">
+                <p className="font-medium">{m.clients?.name ?? "Unknown client"}</p>
+                <p className="text-xs text-muted">{m.news_items?.title ?? "(untitled)"}</p>
+              </div>
             ))}
-            {(!runs || runs.length === 0) && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-muted">
-                  No runs yet — click &ldquo;Run now&rdquo; to trigger the pipeline.
-                </td>
-              </tr>
+            {(!recentMatches || recentMatches.length === 0) && (
+              <p className="rounded-md border border-dashed border-border p-4 text-center text-xs text-muted">
+                No opportunities yet — click &ldquo;Run now&rdquo; to check for news.
+              </p>
             )}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
     </div>
   );

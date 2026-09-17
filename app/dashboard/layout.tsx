@@ -16,17 +16,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link href="/" className="font-semibold tracking-tight hover:text-accent">
             TPBrew
           </Link>
-          <nav className="flex gap-5 text-sm text-muted">
-            <NavLink href="/dashboard">Runs</NavLink>
-            <NavLink href="/dashboard/news">News</NavLink>
+          <nav className="flex items-center gap-5 text-sm text-muted">
+            <NavLink href="/dashboard">Dashboard</NavLink>
             <NavLink href="/dashboard/opportunities">Opportunities</NavLink>
             <NavLink href="/dashboard/drafts">Drafts</NavLink>
+            <NavLink href="/dashboard/news">News</NavLink>
+            <span className="mx-1 h-4 w-px bg-border" aria-hidden="true" />
             <NavLink href="/dashboard/clients">Clients</NavLink>
             <NavLink href="/dashboard/documents">Documents</NavLink>
           </nav>
         </div>
-        <div className="flex items-center gap-3 text-sm text-muted">
-          <span>{user?.email}</span>
+        <div className="flex items-center gap-4 text-xs text-muted">
+          <NavLink href="/dashboard/activity">Activity</NavLink>
+          <span className="text-sm">{user?.email}</span>
           <SignOutButton />
         </div>
       </header>
