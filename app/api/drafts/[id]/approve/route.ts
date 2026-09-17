@@ -9,17 +9,20 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   const supabase = await createClient();
 
   // RLS (drafts_update_own) ensures this only succeeds for the draft's own
-  // manager; the .eq("status", "pending") guard stops double-sends.
-  const { data: draft, error } = await supabase
+  // manager. Check recipients BEFORE flipping status: a draft with no
+  // client contacts on file must stay "pending" (not get stranded in a
+  // terminal "approved, but never sent, and no longer visible on the
+  // Drafts tab" state) so adding a contact and clicking Approve again
+  // actually works.
+  const { data: draft } = await supabase
     .from("drafts")
-    .update({ status: "approved", decided_at: new Date().toISOString() })
+    .select("*, clients(name, id)")
     .eq("id", id)
     .eq("status", "pending")
-    .select("*, clients(name, id)")
     .single();
 
-  if (error || !draft) {
-    return NextResponse.json({ error: error?.message ?? "Draft not found or already decided" }, { status: 404 });
+  if (!draft) {
+    return NextResponse.json({ error: "Draft not found or already decided" }, { status: 404 });
   }
 
   const { data: contacts } = await supabase
@@ -31,19 +34,36 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
 
   if (recipients.length === 0) {
     return NextResponse.json(
-      { error: "Draft approved but no client contacts on file — nothing was sent. Add a contact and resend manually." },
+      {
+        error:
+          "No client contacts on file for this client — add one on the Clients tab, then click Approve again. This draft is still pending; nothing was sent.",
+      },
       { status: 200 }
     );
+  }
+
+  // .eq("status", "pending") guard stops a double-send if two approve
+  // clicks race each other.
+  const { data: updated, error } = await supabase
+    .from("drafts")
+    .update({ status: "approved", decided_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("status", "pending")
+    .select("*, clients(name, id)")
+    .single();
+
+  if (error || !updated) {
+    return NextResponse.json({ error: error?.message ?? "Draft already decided" }, { status: 404 });
   }
 
   await getResend().emails.send({
     from: FROM_EMAIL,
     to: recipients,
-    subject: draft.email_subject,
-    text: draft.email_body,
+    subject: updated.email_subject,
+    text: updated.email_body,
   });
 
   await supabase.from("drafts").update({ status: "sent" }).eq("id", id);
 
-  return NextResponse.json({ ...draft, status: "sent" });
+  return NextResponse.json({ ...updated, status: "sent" });
 }
