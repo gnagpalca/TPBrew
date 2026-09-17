@@ -22,10 +22,15 @@ export default function DriveSyncButton() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Sync failed");
 
+      const errorDetail = (data.errors as string[] | undefined)?.length
+        ? "\n\n" + (data.errors as string[]).slice(0, 5).join("\n")
+        : "";
+
       if (target === "clients") {
         setMessage(
           `${data.clientsCreated} client(s) created, ${data.clientDocsIngested} doc(s) ingested, ${data.skipped} already up to date.` +
-            (data.errors?.length ? ` ${data.errors.length} error(s) — check server logs.` : "")
+            (data.errors?.length ? ` ${data.errors.length} error(s).` : "") +
+            errorDetail
         );
       } else {
         setMessage(
@@ -33,7 +38,8 @@ export default function DriveSyncButton() {
             (data.ranOutOfTime
               ? " Ran out of time for this pass — click again to continue from where it left off."
               : "") +
-            (data.errors?.length ? ` ${data.errors.length} error(s) — check server logs.` : "")
+            (data.errors?.length ? ` ${data.errors.length} error(s).` : "") +
+            errorDetail
         );
       }
       router.refresh();
@@ -66,7 +72,9 @@ export default function DriveSyncButton() {
         Framework docs (OECD/UN/Malaysia PDFs) are large — click that button as many times as needed; it
         resumes where it left off each time.
       </p>
-      {message && <p className="max-w-xs text-right text-xs text-zinc-500">{message}</p>}
+      {message && (
+        <p className="max-w-xs whitespace-pre-line text-right text-xs text-zinc-500">{message}</p>
+      )}
     </div>
   );
 }
