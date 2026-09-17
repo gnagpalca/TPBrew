@@ -29,6 +29,9 @@ export default function DriveSyncButton() {
       if (target === "clients") {
         setMessage(
           `${data.clientsCreated} client(s) created, ${data.clientDocsIngested} doc(s) ingested, ${data.skipped} already up to date.` +
+            (data.ranOutOfTime
+              ? " Ran out of time for this pass (embeddings are throttled to stay on the free tier) — click again to continue."
+              : "") +
             (data.errors?.length ? ` ${data.errors.length} error(s).` : "") +
             errorDetail
         );
@@ -69,8 +72,8 @@ export default function DriveSyncButton() {
         </button>
       </div>
       <p className="max-w-xs text-right text-xs text-zinc-500">
-        Framework docs (OECD/UN/Malaysia PDFs) are large — click that button as many times as needed; it
-        resumes where it left off each time.
+        Embeddings are throttled to stay on Voyage&apos;s free tier, so a large batch may need a few
+        clicks — each run picks up where the last one left off.
       </p>
       {message && (
         <p className="max-w-xs whitespace-pre-line text-right text-xs text-zinc-500">{message}</p>

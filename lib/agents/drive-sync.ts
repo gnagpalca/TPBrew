@@ -130,10 +130,19 @@ export async function syncFrameworkDocs(supabase: SupabaseClient, rootFolderId: 
   return result;
 }
 
+// Voyage's free-tier rate limit (3 requests/minute) throttles every embed
+// call to ~21s apart (see lib/voyage.ts), so a folder with several clients
+// and documents can easily outrun a single request. Same pattern as the
+// framework sync: stop cleanly with a partial result and let the next
+// click pick up where this one left off, instead of Vercel hard-killing
+// the function at maxDuration with no response at all.
+const CLIENT_TIME_BUDGET_MS = 250_000;
+
 export interface ClientSyncResult {
   clientsCreated: number;
   clientDocsIngested: number;
   skipped: number;
+  ranOutOfTime: boolean;
   errors: string[];
 }
 
@@ -148,7 +157,15 @@ export async function syncClientData(
   rootFolderId: string,
   managerId: string
 ): Promise<ClientSyncResult> {
-  const result: ClientSyncResult = { clientsCreated: 0, clientDocsIngested: 0, skipped: 0, errors: [] };
+  const result: ClientSyncResult = {
+    clientsCreated: 0,
+    clientDocsIngested: 0,
+    skipped: 0,
+    ranOutOfTime: false,
+    errors: [],
+  };
+  const startedAt = Date.now();
+  const outOfTime = () => Date.now() - startedAt > CLIENT_TIME_BUDGET_MS;
 
   const clientFolderId = await findSubfolder(rootFolderId, "Client data");
   if (!clientFolderId) {
@@ -160,6 +177,10 @@ export async function syncClientData(
   const newFiles: { file: DriveFile; text: string }[] = [];
 
   for (const file of files) {
+    if (outOfTime()) {
+      result.ranOutOfTime = true;
+      return result;
+    }
     try {
       if (!SUPPORTED_MIME_TYPES.has(file.mimeType)) {
         result.skipped++;
@@ -180,6 +201,10 @@ export async function syncClientData(
   // Identify which taxpayer each new file belongs to, then group.
   const groups = new Map<string, { file: DriveFile; text: string }[]>();
   for (const item of newFiles) {
+    if (outOfTime()) {
+      result.ranOutOfTime = true;
+      return result;
+    }
     const extracted = await askSonnetJson<{ client_name: string }>(
       'Identify the taxpayer/client company name this transfer pricing document is about. Respond with strict JSON only: {"client_name": string}. Use the full legal name as it appears in the document.',
       item.text.slice(0, 4000)
@@ -190,6 +215,10 @@ export async function syncClientData(
   }
 
   for (const [, groupFiles] of groups) {
+    if (outOfTime()) {
+      result.ranOutOfTime = true;
+      break;
+    }
     try {
       const canonicalName = (
         await askSonnetJson<{ client_name: string }>(
@@ -250,6 +279,10 @@ fact_narrative: 4-8 sentences covering the taxpayer's characterisation/role, its
       }
 
       for (const { file, text } of groupFiles) {
+        if (outOfTime()) {
+          result.ranOutOfTime = true;
+          break;
+        }
         await ingestDocument(supabase, {
           category: "client_tp_doc",
           clientId: clientId!,
@@ -260,6 +293,7 @@ fact_narrative: 4-8 sentences covering the taxpayer's characterisation/role, its
         });
         result.clientDocsIngested++;
       }
+      if (result.ranOutOfTime) break;
     } catch (err) {
       result.errors.push(`Client group failed: ${err instanceof Error ? err.message : String(err)}`);
     }
