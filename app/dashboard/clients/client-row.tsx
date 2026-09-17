@@ -16,18 +16,18 @@ export default function ClientRow({ client, contacts }: { client: Client; contac
   const [editing, setEditing] = useState(false);
 
   return (
-    <div className="rounded-lg border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950">
+    <div className="rounded-lg border border-border bg-surface p-4">
       <div className="flex items-center justify-between">
         <div>
           <p className="font-medium">{client.name}</p>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted">
             {client.jurisdiction}
             {client.industry ? ` · ${client.industry}` : ""}
           </p>
         </div>
         <button
           onClick={() => setEditing((v) => !v)}
-          className="rounded-md border border-black/10 px-3 py-1.5 text-xs dark:border-white/10"
+          className="rounded-md border border-border px-3 py-1.5 text-xs hover:border-accent/50"
         >
           {editing ? "Close" : "Edit"}
         </button>
@@ -38,7 +38,7 @@ export default function ClientRow({ client, contacts }: { client: Client; contac
           <ClientForm client={client} onDone={() => setEditing(false)} />
         </div>
       ) : (
-        <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">{client.fact_narrative}</p>
+        <p className="mt-2 line-clamp-2 text-sm text-zinc-300">{client.fact_narrative}</p>
       )}
 
       <ContactManager clientId={client.id} contacts={contacts} />

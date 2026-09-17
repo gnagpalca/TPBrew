@@ -14,13 +14,13 @@ export default async function ClientsPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-lg font-semibold">Clients</h1>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-muted">
           The fact narrative drives embedding quality — be specific about intercompany services, IP licensing,
           loans, and manufacturing structure.
         </p>
       </div>
 
-      <div className="rounded-lg border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950">
+      <div className="rounded-lg border border-border bg-surface p-4">
         <p className="mb-3 text-sm font-medium">Add a client</p>
         <ClientForm />
       </div>
@@ -32,7 +32,7 @@ export default async function ClientsPage() {
           )
         )}
         {(!clients || clients.length === 0) && (
-          <p className="rounded-lg border border-dashed border-black/10 p-6 text-center text-sm text-zinc-500 dark:border-white/10">
+          <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted">
             No clients yet — add one above.
           </p>
         )}

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./sign-out-button";
+import NavLink from "./nav-link";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -10,36 +10,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-black/10 px-6 py-3 dark:border-white/10">
-        <div className="flex items-center gap-6">
-          <span className="font-semibold">TP News Intelligence</span>
-          <nav className="flex gap-4 text-sm text-zinc-600 dark:text-zinc-400">
-            <Link href="/dashboard" className="hover:text-black dark:hover:text-white">
-              Runs
-            </Link>
-            <Link href="/dashboard/news" className="hover:text-black dark:hover:text-white">
-              News
-            </Link>
-            <Link href="/dashboard/opportunities" className="hover:text-black dark:hover:text-white">
-              Opportunities
-            </Link>
-            <Link href="/dashboard/drafts" className="hover:text-black dark:hover:text-white">
-              Drafts
-            </Link>
-            <Link href="/dashboard/clients" className="hover:text-black dark:hover:text-white">
-              Clients
-            </Link>
-            <Link href="/dashboard/documents" className="hover:text-black dark:hover:text-white">
-              Documents
-            </Link>
+      <header className="flex items-center justify-between border-b border-border px-6 py-3">
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-xs font-bold text-accent-foreground">
+              TB
+            </span>
+            <span className="font-semibold tracking-tight">TPBrew</span>
+          </div>
+          <nav className="flex gap-5 text-sm text-muted">
+            <NavLink href="/dashboard">Runs</NavLink>
+            <NavLink href="/dashboard/news">News</NavLink>
+            <NavLink href="/dashboard/opportunities">Opportunities</NavLink>
+            <NavLink href="/dashboard/drafts">Drafts</NavLink>
+            <NavLink href="/dashboard/clients">Clients</NavLink>
+            <NavLink href="/dashboard/documents">Documents</NavLink>
           </nav>
         </div>
-        <div className="flex items-center gap-3 text-sm text-zinc-500">
+        <div className="flex items-center gap-3 text-sm text-muted">
           <span>{user?.email}</span>
           <SignOutButton />
         </div>
       </header>
-      <main className="flex-1 bg-zinc-50 p-6 dark:bg-black">{children}</main>
+      <main className="flex-1 bg-background p-6">{children}</main>
     </div>
   );
 }

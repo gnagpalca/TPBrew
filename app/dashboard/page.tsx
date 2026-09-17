@@ -5,9 +5,9 @@ import type { AgentRun } from "@/lib/types";
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950">
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
+    <div className="rounded-lg border border-border bg-surface p-4">
+      <p className="text-xs text-muted">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-accent">{value}</p>
     </div>
   );
 }
@@ -61,11 +61,11 @@ export default async function DashboardPage() {
       </div>
 
       {topTopics.length > 0 && (
-        <div className="rounded-lg border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950">
-          <p className="mb-2 text-xs text-zinc-500">Top matched topics</p>
+        <div className="rounded-lg border border-border bg-surface p-4">
+          <p className="mb-2 text-xs text-muted">Top matched topics</p>
           <div className="flex flex-wrap gap-2">
             {topTopics.map(([tag, count]) => (
-              <span key={tag} className="rounded-full bg-zinc-100 px-3 py-1 text-xs dark:bg-zinc-800">
+              <span key={tag} className="rounded-full bg-surface-muted px-3 py-1 text-xs">
                 {tag} · {count}
               </span>
             ))}
@@ -73,9 +73,9 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-black/10 dark:border-white/10">
+      <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-100 text-left text-xs uppercase text-zinc-500 dark:bg-zinc-900">
+          <thead className="bg-surface-muted text-left text-xs uppercase text-muted">
             <tr>
               <th className="px-4 py-2">Started</th>
               <th className="px-4 py-2">Trigger</th>
@@ -87,20 +87,20 @@ export default async function DashboardPage() {
           </thead>
           <tbody>
             {(runs as AgentRun[] | null)?.map((run) => (
-              <tr key={run.id} className="border-t border-black/5 dark:border-white/5">
+              <tr key={run.id} className="border-t border-border">
                 <td className="px-4 py-2">{formatMalaysiaDateTime(run.started_at)}</td>
                 <td className="px-4 py-2 capitalize">{run.trigger_type}</td>
                 <td className="px-4 py-2">{run.sources_checked ?? "—"}</td>
                 <td className="px-4 py-2">{run.items_found ?? "—"}</td>
                 <td className="px-4 py-2">{run.items_matched ?? "—"}</td>
-                <td className="px-4 py-2 text-red-600">
+                <td className="px-4 py-2 text-red-400">
                   {Array.isArray(run.errors) ? `${run.errors.length} error(s)` : "—"}
                 </td>
               </tr>
             ))}
             {(!runs || runs.length === 0) && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-zinc-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-muted">
                   No runs yet — click &ldquo;Run now&rdquo; to trigger the pipeline.
                 </td>
               </tr>

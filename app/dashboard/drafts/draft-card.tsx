@@ -51,18 +51,18 @@ export default function DraftCard({ id, clientName, matchCount, emailSubject, em
   }
 
   return (
-    <div className="rounded-lg border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-zinc-950">
+    <div className="rounded-lg border border-border bg-surface p-4">
       <div className="flex items-center justify-between">
         <div>
           <p className="font-medium">{clientName}</p>
-          <p className="text-xs text-zinc-500">{matchCount} matched item(s) bundled</p>
+          <p className="text-xs text-muted">{matchCount} matched item(s) bundled</p>
         </div>
         <div className="flex gap-2">
           {!editing && (
             <button
               onClick={() => setEditing(true)}
               disabled={busy}
-              className="rounded-md border border-black/10 px-3 py-1.5 text-xs dark:border-white/10"
+              className="rounded-md border border-border px-3 py-1.5 text-xs hover:border-accent/50"
             >
               Edit
             </button>
@@ -70,14 +70,14 @@ export default function DraftCard({ id, clientName, matchCount, emailSubject, em
           <button
             onClick={() => decide("reject")}
             disabled={busy}
-            className="rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-600 dark:border-red-900"
+            className="rounded-md border border-red-900/50 px-3 py-1.5 text-xs text-red-400"
           >
             Reject
           </button>
           <button
             onClick={() => decide("approve")}
             disabled={busy}
-            className="rounded-md bg-black px-3 py-1.5 text-xs font-medium text-white dark:bg-white dark:text-black"
+            className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground transition hover:brightness-110"
           >
             Approve & send
           </button>
@@ -89,19 +89,19 @@ export default function DraftCard({ id, clientName, matchCount, emailSubject, em
           <input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/10"
+            className="rounded-md border border-border bg-transparent px-3 py-2 text-sm"
           />
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={10}
-            className="rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/10"
+            className="rounded-md border border-border bg-transparent px-3 py-2 text-sm"
           />
           <div className="flex gap-2">
             <button
               onClick={saveEdit}
               disabled={busy}
-              className="rounded-md bg-black px-3 py-1.5 text-xs font-medium text-white dark:bg-white dark:text-black"
+              className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground transition hover:brightness-110"
             >
               Save
             </button>
@@ -111,7 +111,7 @@ export default function DraftCard({ id, clientName, matchCount, emailSubject, em
                 setSubject(emailSubject);
                 setBody(emailBody);
               }}
-              className="rounded-md border border-black/10 px-3 py-1.5 text-xs dark:border-white/10"
+              className="rounded-md border border-border px-3 py-1.5 text-xs hover:border-accent/50"
             >
               Cancel
             </button>
@@ -124,7 +124,7 @@ export default function DraftCard({ id, clientName, matchCount, emailSubject, em
         </div>
       )}
 
-      {message && <p className="mt-2 text-xs text-zinc-500">{message}</p>}
+      {message && <p className="mt-2 text-xs text-muted">{message}</p>}
     </div>
   );
 }

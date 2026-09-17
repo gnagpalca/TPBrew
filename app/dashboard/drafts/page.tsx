@@ -13,7 +13,7 @@ export default async function DraftsPage() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-lg font-semibold">Pending drafts</h1>
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-muted">
         Nothing reaches a client until you approve it here — approving sends immediately.
       </p>
 
@@ -29,7 +29,7 @@ export default async function DraftsPage() {
           />
         ))}
         {(!drafts || drafts.length === 0) && (
-          <p className="rounded-lg border border-dashed border-black/10 p-6 text-center text-sm text-zinc-500 dark:border-white/10">
+          <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted">
             No pending drafts. Run the agent to generate this week&rsquo;s drafts.
           </p>
         )}

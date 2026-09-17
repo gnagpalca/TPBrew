@@ -35,11 +35,11 @@ export default function ContactManager({ clientId, contacts }: { clientId: strin
   }
 
   return (
-    <div className="mt-3 border-t border-black/5 pt-3 dark:border-white/5">
-      <p className="mb-2 text-xs font-medium text-zinc-500">Client contacts (receive approved emails)</p>
+    <div className="mt-3 border-t border-border pt-3">
+      <p className="mb-2 text-xs font-medium text-muted">Client contacts (receive approved emails)</p>
       <ul className="mb-2 flex flex-col gap-1">
         {contacts.map((c) => (
-          <li key={c.id} className="text-xs text-zinc-600 dark:text-zinc-400">
+          <li key={c.id} className="text-xs text-zinc-300">
             {c.name ? `${c.name} · ` : ""}
             {c.email}
             {c.role ? ` · ${c.role}` : ""}
@@ -52,7 +52,7 @@ export default function ContactManager({ clientId, contacts }: { clientId: strin
           placeholder="Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="rounded-md border border-black/10 bg-transparent px-2 py-1 text-xs dark:border-white/10"
+          className="rounded-md border border-border bg-transparent px-2 py-1 text-xs"
         />
         <input
           required
@@ -60,18 +60,18 @@ export default function ContactManager({ clientId, contacts }: { clientId: strin
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-md border border-black/10 bg-transparent px-2 py-1 text-xs dark:border-white/10"
+          className="rounded-md border border-border bg-transparent px-2 py-1 text-xs"
         />
         <input
           placeholder="Role"
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          className="rounded-md border border-black/10 bg-transparent px-2 py-1 text-xs dark:border-white/10"
+          className="rounded-md border border-border bg-transparent px-2 py-1 text-xs"
         />
         <button
           type="submit"
           disabled={busy}
-          className="rounded-md bg-black px-3 py-1 text-xs font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+          className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-accent-foreground transition hover:brightness-110 disabled:opacity-50"
         >
           Add
         </button>

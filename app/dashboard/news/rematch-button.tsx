@@ -37,17 +37,15 @@ export default function RematchButton() {
       <button
         onClick={handleRematch}
         disabled={busy}
-        className="whitespace-nowrap rounded-md border border-black/10 px-3 py-1.5 text-xs disabled:opacity-50 dark:border-white/10"
+        className="whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-xs hover:border-accent/50 disabled:opacity-50"
       >
         {busy ? "Re-matching…" : "Re-match against clients"}
       </button>
-      <p className="max-w-xs text-right text-xs text-zinc-500">
+      <p className="max-w-xs text-right text-xs text-muted">
         Checks all scraped news against clients as they exist right now — use this after syncing new
         clients instead of waiting for fresh news to trigger matching.
       </p>
-      {message && (
-        <p className="max-w-xs whitespace-pre-line text-right text-xs text-zinc-500">{message}</p>
-      )}
+      {message && <p className="max-w-xs whitespace-pre-line text-right text-xs text-muted">{message}</p>}
     </div>
   );
 }

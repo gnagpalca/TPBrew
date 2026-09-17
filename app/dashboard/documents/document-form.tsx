@@ -55,7 +55,7 @@ export default function DocumentForm({ clients }: { clients: ClientOption[] }) {
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as DocumentCategory)}
-          className="rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/10"
+          className="rounded-md border border-border bg-transparent px-3 py-2 text-sm"
         >
           <option value="regulatory_framework">Malaysia regulatory framework</option>
           <option value="client_tp_doc">Client TP document</option>
@@ -66,7 +66,7 @@ export default function DocumentForm({ clients }: { clients: ClientOption[] }) {
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             required
-            className="flex-1 rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/10"
+            className="flex-1 rounded-md border border-border bg-transparent px-3 py-2 text-sm"
           >
             {clients.length === 0 && <option value="">Add a client first</option>}
             {clients.map((c) => (
@@ -80,7 +80,7 @@ export default function DocumentForm({ clients }: { clients: ClientOption[] }) {
             value={jurisdiction}
             onChange={(e) => setJurisdiction(e.target.value)}
             placeholder="Jurisdiction (e.g. Malaysia, OECD-wide)"
-            className="flex-1 rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/10"
+            className="flex-1 rounded-md border border-border bg-transparent px-3 py-2 text-sm"
           />
         )}
       </div>
@@ -90,7 +90,7 @@ export default function DocumentForm({ clients }: { clients: ClientOption[] }) {
         placeholder="Document title (e.g. 'LHDN TP Guidelines 2024', 'FY24 TP Policy Memo')"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/10"
+        className="rounded-md border border-border bg-transparent px-3 py-2 text-sm"
       />
       <textarea
         required
@@ -98,18 +98,18 @@ export default function DocumentForm({ clients }: { clients: ClientOption[] }) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={8}
-        className="rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm dark:border-white/10"
+        className="rounded-md border border-border bg-transparent px-3 py-2 text-sm"
       />
 
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={busy || (category === "client_tp_doc" && !clientId)}
-          className="w-fit rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+          className="w-fit rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition hover:brightness-110 disabled:opacity-50"
         >
           {busy ? "Ingesting…" : "Ingest document"}
         </button>
-        {message && <p className="text-sm text-zinc-500">{message}</p>}
+        {message && <p className="text-sm text-muted">{message}</p>}
       </div>
     </form>
   );
