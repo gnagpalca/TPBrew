@@ -2,7 +2,14 @@ import { anthropic, MODELS } from "@/lib/anthropic";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Client, NewsItem, Citation } from "@/lib/types";
 
-const SIMILARITY_THRESHOLD = 0.75;
+// A short news headline/summary and a formal multi-sentence client fact
+// narrative are different enough in style that genuinely related pairs
+// often score well below a "high confidence" cosine similarity — 0.75 was
+// filtering out every candidate before Sonnet ever got to judge them. This
+// is deliberately a loose pre-filter (the vector search's job is just to
+// avoid running Sonnet over the whole client list); Sonnet's judgeMatch is
+// the one actually deciding relevance and catching false positives.
+const SIMILARITY_THRESHOLD = 0.3;
 const CANDIDATE_LIMIT = 10;
 const GROUNDING_CHUNK_LIMIT = 5;
 
