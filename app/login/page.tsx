@@ -31,12 +31,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-1 items-center justify-center bg-background">
       <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-8">
-        <div className="mb-1 flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-sm font-bold text-accent-foreground">
-            TB
-          </span>
-          <h1 className="text-xl font-semibold tracking-tight">TPBrew</h1>
-        </div>
+        <h1 className="text-xl font-semibold tracking-tight">TPBrew</h1>
         <p className="mt-1 text-sm text-muted">Sign in with your manager account.</p>
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
