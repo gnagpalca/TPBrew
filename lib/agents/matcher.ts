@@ -127,6 +127,21 @@ export async function matchNewsItem(supabase: SupabaseClient, newsItem: NewsItem
   for (const candidate of candidates as CandidateRow[]) {
     if (!jurisdictionApplies(candidate, newsItem.jurisdiction_relevance)) continue;
 
+    // No unique constraint on (news_item_id, client_id) — guard here so this
+    // is safe to call more than once for the same item (e.g. a manual
+    // re-match after new clients are added), instead of stacking duplicate
+    // matches/drafts each time.
+    const { data: existingMatch } = await supabase
+      .from("matches")
+      .select("id")
+      .eq("news_item_id", newsItem.id)
+      .eq("client_id", candidate.id)
+      .maybeSingle();
+    if (existingMatch) {
+      matchedCount++;
+      continue;
+    }
+
     const groundingChunks = await retrieveGroundingChunks(supabase, candidate, newsItem);
     const judgment = await judgeMatch(candidate, newsItem, groundingChunks);
     if (!judgment.relevant) continue;

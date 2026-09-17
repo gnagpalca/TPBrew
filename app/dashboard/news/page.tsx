@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatMalaysiaDate, malaysiaTodayStartUtc } from "@/lib/format";
 import type { NewsItem } from "@/lib/types";
+import RematchButton from "./rematch-button";
 
 export default async function NewsPage({
   searchParams,
@@ -30,12 +31,15 @@ export default async function NewsPage({
             view just defaults to today.
           </p>
         </div>
-        <Link
-          href={showAll ? "/dashboard/news" : "/dashboard/news?all=true"}
-          className="whitespace-nowrap rounded-md border border-black/10 px-3 py-1.5 text-xs dark:border-white/10"
-        >
-          {showAll ? "Show today only" : "Show all history"}
-        </Link>
+        <div className="flex flex-col items-end gap-2">
+          <Link
+            href={showAll ? "/dashboard/news" : "/dashboard/news?all=true"}
+            className="whitespace-nowrap rounded-md border border-black/10 px-3 py-1.5 text-xs dark:border-white/10"
+          >
+            {showAll ? "Show today only" : "Show all history"}
+          </Link>
+          <RematchButton />
+        </div>
       </div>
 
       <div className="flex flex-col gap-3">
