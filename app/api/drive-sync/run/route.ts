@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { syncFromDrive } from "@/lib/agents/drive-sync";
+import { syncClientData, syncFrameworkDocs } from "@/lib/agents/drive-sync";
 
 export const maxDuration = 300; // extraction + summarization + embedding across many files
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,10 +17,17 @@ export async function POST() {
     return NextResponse.json({ error: "GOOGLE_DRIVE_ROOT_FOLDER_ID is not configured" }, { status: 500 });
   }
 
+  const { target } = (await request.json().catch(() => ({}))) as { target?: "clients" | "framework" };
   const admin = createAdminClient();
 
   try {
-    const result = await syncFromDrive(admin, rootFolderId, user.id);
+    if (target === "framework") {
+      const result = await syncFrameworkDocs(admin, rootFolderId);
+      return NextResponse.json(result);
+    }
+    // Default to clients — the fast path, and the one that unblocks
+    // matching/drafting immediately.
+    const result = await syncClientData(admin, rootFolderId, user.id);
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(
